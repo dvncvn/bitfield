@@ -9,7 +9,7 @@ const NOUNS = [
   'form', 'space', 'lapse', 'tone', 'shift', 'blur',
   'sync', 'ghost', 'cell', 'arc', 'veil',
   'slab', 'ring', 'node', 'seam', 'span', 'axis',
-  'core', 'dome', 'rift', 'dust', 'echo', 'wake',
+  'core', 'dome', 'rift', 'dust', 'echo', 'wake', 'mono', 'poly',
 ];
 
 const MODIFIERS = [
