@@ -1,4 +1,4 @@
-import { initRenderer, renderFrame, type RendererState, type InitOptions } from './renderer';
+import { initRenderer, renderFrame, hexToABGR, type RendererState, type InitOptions } from './renderer';
 import { savePNG, recordWebM } from './export';
 
 export function setupUI(canvas: HTMLCanvasElement): void {
@@ -13,7 +13,8 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   const savePngBtn = document.getElementById('savePng')!;
   const recBtn = document.getElementById('recordWebm')!;
   const eventsToggle = document.getElementById('eventsToggle')!;
-  const colorToggle = document.getElementById('colorToggle')!;
+  const fgColorInput = document.getElementById('fgColor') as HTMLInputElement;
+  const bgColorInput = document.getElementById('bgColor') as HTMLInputElement;
   const frameToggleBtn = document.getElementById('frameToggle')!;
   const frameTextEl = document.getElementById('frame-text')!;
 
@@ -112,6 +113,8 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     state.scale = v.scale;
     state.density = v.density;
     state.warp = v.warp;
+    state.fgColor = hexToABGR(fgColorInput.value);
+    state.bgColor = hexToABGR(bgColorInput.value);
   }
 
   function regenerate() {
@@ -164,12 +167,17 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     eventsToggle.classList.toggle('active', state.eventsEnabled);
   });
 
-  function toggleColor() {
-    state.colorMode = !state.colorMode;
-    colorToggle.textContent = state.colorMode ? 'ON' : 'OFF';
-    colorToggle.classList.toggle('active', state.colorMode);
+  function applyColors() {
+    state.fgColor = hexToABGR(fgColorInput.value);
+    state.bgColor = hexToABGR(bgColorInput.value);
+    if (frameMode) {
+      document.body.style.backgroundColor = bgColorInput.value;
+      // Set frame text to foreground color
+      frameTextEl.style.color = fgColorInput.value;
+    }
   }
-  colorToggle.addEventListener('click', toggleColor);
+  fgColorInput.addEventListener('input', applyColors);
+  bgColorInput.addEventListener('input', applyColors);
 
   // === Frame mode ===
   let frameMode = false;
@@ -177,6 +185,8 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   function updateFrameLayout() {
     if (!frameMode) {
       document.body.classList.remove('framed');
+      document.body.style.backgroundColor = '';
+      frameTextEl.style.color = '';
       frameTextEl.style.display = '';  // back to CSS default (none)
       // Clear inline overrides — stylesheet rules take over
       canvas.style.top = '';
@@ -188,6 +198,8 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     }
 
     document.body.classList.add('framed');
+    document.body.style.backgroundColor = bgColorInput.value;
+    frameTextEl.style.color = fgColorInput.value;
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -289,10 +301,6 @@ export function setupUI(canvas: HTMLCanvasElement): void {
       case 's':
       case 'S':
         savePNG(canvas, seed);
-        break;
-      case 'c':
-      case 'C':
-        toggleColor();
         break;
       case 'f':
       case 'F':

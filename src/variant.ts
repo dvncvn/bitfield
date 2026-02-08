@@ -1,6 +1,6 @@
 import { createPRNG } from './prng';
 
-export type RuleType = 'noise' | 'dither' | 'automata' | 'reaction' | 'lines' | 'streak' | 'columns' | 'gradient';
+export type RuleType = 'noise' | 'dither' | 'automata' | 'reaction' | 'lines' | 'streak' | 'columns' | 'gradient' | 'dots' | 'checker';
 
 export interface EventDef {
   /** Normalised time in [0, 1) when event fires */
@@ -25,26 +25,44 @@ export interface VariantConfig {
 }
 
 const GRID_OPTIONS: (64 | 96 | 128 | 192)[] = [64, 96, 128, 192];
-const ALL_RULES: RuleType[] = ['noise', 'dither', 'automata', 'reaction', 'lines', 'streak', 'columns', 'gradient'];
+
+// Organic/chaotic rules
+const ORGANIC_RULES: RuleType[] = ['noise', 'streak', 'columns', 'gradient', 'automata', 'reaction'];
+// Geometric/regular rules
+const GEOMETRIC_RULES: RuleType[] = ['lines', 'dither', 'dots', 'checker'];
+const ALL_RULES: RuleType[] = [...ORGANIC_RULES, ...GEOMETRIC_RULES];
 
 /**
  * Deterministically derive a complete variant config from a seed (0–255).
- * Seeds are grouped into 4 families of 64, each biased toward a dominant rule.
+ * Every variant gets a mix of organic and geometric rules for contrast.
  */
 export function getVariantConfig(seed: number): VariantConfig {
   const rng = createPRNG(seed * 7919 + 31); // spread seeds
 
-  // Family determines dominant rule
-  const family = (seed >> 6) & 3; // 0–3
-  // Map families to dominant rules, cycling through all 8
-  const familyRules: RuleType[] = ['noise', 'streak', 'columns', 'gradient'];
-  const dominantRule = familyRules[family];
+  // Pick a dominant rule — alternate between organic and geometric families
+  const family = (seed >> 5) & 7; // 0–7, 8 families
+  const familyRules: RuleType[] = [
+    'noise', 'lines', 'streak', 'dots', 'columns', 'checker', 'gradient', 'dither',
+  ];
+  const dominantRule = familyRules[family % familyRules.length];
 
-  // Pick 3–5 active rules, always including the dominant one
-  const others = ALL_RULES.filter((r) => r !== dominantRule);
-  rng.shuffle(others);
-  const ruleCount = rng.randInt(3, 6); // 3–5
-  const activeRules: RuleType[] = [dominantRule, ...others.slice(0, ruleCount - 1)];
+  // Build active rules: always include dominant + at least 1 geometric + 1 organic
+  const ruleCount = rng.randInt(4, 7); // 4–6 active rules
+
+  // Ensure mix: pick 1–2 from each category (excluding dominant)
+  const geoPool = GEOMETRIC_RULES.filter(r => r !== dominantRule);
+  const orgPool = ORGANIC_RULES.filter(r => r !== dominantRule);
+  rng.shuffle(geoPool);
+  rng.shuffle(orgPool);
+
+  const geoCount = rng.randInt(1, 3); // 1–2 geometric
+  const orgCount = Math.min(orgPool.length, ruleCount - 1 - geoCount);
+  const activeRules: RuleType[] = [
+    dominantRule,
+    ...geoPool.slice(0, geoCount),
+    ...orgPool.slice(0, orgCount),
+  ];
+  rng.shuffle(activeRules);
 
   // Grid resolution — weighted by seed bits
   const gridRes = GRID_OPTIONS[rng.randInt(0, 4)];

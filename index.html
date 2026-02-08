@@ -34,6 +34,13 @@
       background: transparent; border: 1px solid #555; color: #fff;
       padding: 3px 8px; border-radius: 3px; cursor: pointer; font-family: 'Geist Pixel', monospace; font-size: 11px;
     }
+    #ui input[type=color] {
+      flex: 1; height: 22px; border: 1px solid #555; border-radius: 3px;
+      background: transparent; cursor: pointer; padding: 0;
+      -webkit-appearance: none; appearance: none;
+    }
+    #ui input[type=color]::-webkit-color-swatch-wrapper { padding: 1px; }
+    #ui input[type=color]::-webkit-color-swatch { border: none; border-radius: 2px; }
     #ui button:hover { border-color: #fff; }
     #ui button.active { border-color: #fff; background: rgba(255,255,255,0.1); }
     #ui .divider { border-top: 1px solid #333; margin: 2px 0; }
@@ -107,7 +114,8 @@
     <div class="row"><label>Speed</label><input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"><span class="val" id="speedVal">1.0</span></div>
     <div class="row"><label>Period</label><input type="range" id="period" min="3" max="20" step="0.5" value="8"><span class="val" id="periodVal">8s</span></div>
     <div class="row"><label>Events</label><button id="eventsToggle" class="active">ON</button></div>
-    <div class="row"><label>Color</label><button id="colorToggle">OFF</button></div>
+    <div class="row"><label>FG</label><input type="color" id="fgColor" value="#ffffff"></div>
+    <div class="row"><label>BG</label><input type="color" id="bgColor" value="#000000"></div>
     <div class="row"><label>Frame</label><button id="frameToggle">OFF</button></div>
 
     <div class="divider"></div>
@@ -116,7 +124,7 @@
       <button id="savePng">💾 PNG</button>
       <button id="recordWebm">⏺ REC</button>
     </div>
-    <div class="hint">Space: play/pause · ←→: seed · R: rand · C: color · F: frame · S: png</div>
+    <div class="hint">Space: play/pause · ←→: seed · R: rand · F: frame · S: png</div>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
