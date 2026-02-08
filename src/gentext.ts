@@ -10,6 +10,7 @@ const NOUNS = [
   'sync', 'ghost', 'cell', 'arc', 'veil',
   'slab', 'ring', 'node', 'seam', 'span', 'axis',
   'core', 'dome', 'rift', 'dust', 'echo', 'wake', 'mono', 'poly',
+  'lfo', 'noise', 'osc', 'sine', 'triangle', 'wave', 'square', 'saw', 'reverb', 'freeze',
 ];
 
 const MODIFIERS = [
