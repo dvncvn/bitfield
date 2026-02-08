@@ -74,6 +74,7 @@ export interface RendererState {
   mousePressed: boolean;
   mouseRadius: number;   // fraction of short side (0.05–0.5)
   mouseStrength: number; // push strength (0.1–2)
+  zoom: number;          // 1.0 = normal, >1 = zoomed in, <1 = zoomed out
   startTime: number;
   pauseOffset: number;
 }
@@ -192,6 +193,7 @@ export function initRenderer(
     mousePressed: false,
     mouseRadius: 0.18,
     mouseStrength: 0.7,
+    zoom: 1.0,
     startTime: performance.now(),
     pauseOffset: 0,
   };
@@ -319,47 +321,60 @@ export function renderFrame(state: RendererState): void {
   applyWarp(gridBuffer, warpBuffer, gridW, gridH, t, state.warp, config.seed);
   const finalBuffer = state.warp > 0 ? warpBuffer : gridBuffer;
 
-  // Blit 1:1 with optional mouse distortion
+  // Blit with zoom + optional mouse distortion
   const { imageData } = state;
   const data32 = new Uint32Array(imageData.data.buffer);
-  const totalPixels = gridW * gridH;
   const fg = state.fgColor;
   const bg = state.bgColor;
+
+  const zoom = state.zoom;
+  const cx = gridW * 0.5;
+  const cy = gridH * 0.5;
+  const invZ = 1 / zoom;
 
   const mx = state.mouseGX;
   const my = state.mouseGY;
   const mouseActive = state.mouseEnabled && mx >= 0 && my >= 0;
 
-  if (!mouseActive) {
+  if (!mouseActive && zoom === 1) {
+    // Fast path — no zoom, no mouse
+    const totalPixels = gridW * gridH;
     for (let i = 0; i < totalPixels; i++) {
       data32[i] = finalBuffer[i] ? fg : bg;
     }
   } else {
-    const radius = Math.min(gridW, gridH) * state.mouseRadius;
+    const radius = mouseActive ? Math.min(gridW, gridH) * state.mouseRadius : 0;
     const r2 = radius * radius;
     const strength = state.mouseStrength;
-    // Hover = attract (-1), click = repel (+1)
     const direction = state.mousePressed ? 1 : -1;
 
     for (let gy = 0; gy < gridH; gy++) {
-      const dy = gy - my;
-      const dy2 = dy * dy;
       for (let gx = 0; gx < gridW; gx++) {
-        const dx = gx - mx;
-        const d2 = dx * dx + dy2;
-        let srcIdx: number;
-        if (d2 < r2 && d2 > 0) {
-          const dist = Math.sqrt(d2);
-          const falloff = 1 - dist / radius;
-          const push = falloff * falloff * strength * radius * direction;
-          const sx = Math.round(gx + (dx / dist) * push);
-          const sy = Math.round(gy + (dy / dist) * push);
-          srcIdx = Math.max(0, Math.min(gridH - 1, sy)) * gridW
-                 + Math.max(0, Math.min(gridW - 1, sx));
-        } else {
-          srcIdx = gy * gridW + gx;
+        // Zoom: map output pixel back to source
+        let sx = cx + (gx - cx) * invZ;
+        let sy = cy + (gy - cy) * invZ;
+
+        // Mouse distortion (applied in zoomed space)
+        if (mouseActive) {
+          const dx = gx - mx;
+          const dy = gy - my;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < r2 && d2 > 0) {
+            const dist = Math.sqrt(d2);
+            const falloff = 1 - dist / radius;
+            const push = falloff * falloff * strength * radius * direction;
+            sx += (dx / dist) * push * invZ;
+            sy += (dy / dist) * push * invZ;
+          }
         }
-        data32[gy * gridW + gx] = finalBuffer[srcIdx] ? fg : bg;
+
+        const ix = Math.round(sx);
+        const iy = Math.round(sy);
+        if (ix < 0 || ix >= gridW || iy < 0 || iy >= gridH) {
+          data32[gy * gridW + gx] = bg;
+        } else {
+          data32[gy * gridW + gx] = finalBuffer[iy * gridW + ix] ? fg : bg;
+        }
       }
     }
   }

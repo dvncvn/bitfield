@@ -19,6 +19,7 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   const frameTextEl = document.getElementById('frame-text')!;
   const frameControlsEl = document.getElementById('frameControls')!;
   const frameBgInput = document.getElementById('frameBg') as HTMLInputElement;
+  const frameBgLinkBtn = document.getElementById('frameBgLink')!;
   const frameRatioSelect = document.getElementById('frameRatio') as HTMLSelectElement;
   const frameShapeSelect = document.getElementById('frameShape') as HTMLSelectElement;
   const textToggleBtn = document.getElementById('textToggle')!;
@@ -41,6 +42,11 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   const warpSlider = document.getElementById('warp') as HTMLInputElement;
   const speedSlider = document.getElementById('speed') as HTMLInputElement;
   const periodSlider = document.getElementById('period') as HTMLInputElement;
+  const bpmToggleBtn = document.getElementById('bpmToggle')!;
+  const bpmControlsEl = document.getElementById('bpmControls')!;
+  const tapTempoBtn = document.getElementById('tapTempo')!;
+  const bpmValEl = document.getElementById('bpmVal')!;
+  const bpmBarsSelect = document.getElementById('bpmBars') as HTMLSelectElement;
 
   // Value displays
   const resVal = document.getElementById('resVal')!;
@@ -199,6 +205,10 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   function applyColors() {
     state.fgColor = hexToABGR(fgColorInput.value);
     state.bgColor = hexToABGR(bgColorInput.value);
+    if (frameBgLinked && frameMode) {
+      frameBgInput.value = bgColorInput.value;
+      document.body.style.backgroundColor = frameBgInput.value;
+    }
   }
   fgColorInput.addEventListener('input', applyColors);
   bgColorInput.addEventListener('input', applyColors);
@@ -361,10 +371,24 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   }
   frameToggleBtn.addEventListener('click', toggleFrame);
 
+  // Frame BG link toggle
+  let frameBgLinked = true;
+  frameBgLinkBtn.addEventListener('click', () => {
+    frameBgLinked = !frameBgLinked;
+    frameBgLinkBtn.classList.toggle('active', frameBgLinked);
+    if (frameBgLinked && frameMode) {
+      frameBgInput.value = bgColorInput.value;
+      document.body.style.backgroundColor = frameBgInput.value;
+    }
+  });
+
   // Frame sub-controls update layout live
   frameBgInput.addEventListener('input', () => {
     if (frameMode) {
       document.body.style.backgroundColor = frameBgInput.value;
+      // Manual edit breaks the link
+      frameBgLinked = false;
+      frameBgLinkBtn.classList.remove('active');
     }
   });
   frameRatioSelect.addEventListener('change', () => { if (frameMode) updateFrameLayout(); });
@@ -381,6 +405,59 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     if (frameMode) updateFrameLayout();
   });
   textPositionSelect.addEventListener('change', () => { if (frameMode) updateFrameLayout(); });
+
+  // === BPM sync ===
+  let bpmMode = false;
+  let bpm = 120;
+  const tapTimes: number[] = [];
+
+  function bpmToPeriod(): number {
+    const bars = parseInt(bpmBarsSelect.value, 10);
+    // 4/4 time: period = (60/bpm) * 4 beats * bars
+    return (60 / bpm) * 4 * bars;
+  }
+
+  function applyBpm() {
+    const p = bpmToPeriod();
+    periodSlider.value = Math.min(64, Math.max(1, p)).toFixed(1);
+    // Also set speed so animation feels matched
+    speedSlider.value = '1.0';
+    bpmValEl.textContent = String(Math.round(bpm));
+    updateValDisplays();
+    debouncedRegen();
+  }
+
+  bpmToggleBtn.addEventListener('click', () => {
+    bpmMode = !bpmMode;
+    bpmToggleBtn.textContent = bpmMode ? 'ON' : 'OFF';
+    bpmToggleBtn.classList.toggle('active', bpmMode);
+    bpmControlsEl.style.display = bpmMode ? '' : 'none';
+    if (bpmMode) applyBpm();
+  });
+
+  tapTempoBtn.addEventListener('click', () => {
+    const now = performance.now();
+    // Reset if last tap was >2s ago
+    if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000) {
+      tapTimes.length = 0;
+    }
+    tapTimes.push(now);
+    if (tapTimes.length > 8) tapTimes.shift(); // keep last 8 taps
+    if (tapTimes.length >= 2) {
+      const intervals: number[] = [];
+      for (let i = 1; i < tapTimes.length; i++) {
+        intervals.push(tapTimes[i] - tapTimes[i - 1]);
+      }
+      const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      bpm = Math.round(60000 / avg);
+      bpm = Math.max(30, Math.min(300, bpm));
+      applyBpm();
+    }
+  });
+
+  bpmBarsSelect.addEventListener('change', () => {
+    if (bpmMode) applyBpm();
+  });
 
   // === Sliders that need full regeneration — debounced ===
   let regenTimer = 0;
@@ -439,6 +516,45 @@ export function setupUI(canvas: HTMLCanvasElement): void {
       case 'ArrowRight':
         setSeed(seed + 1);
         break;
+      case 'ArrowUp': {
+        const step = e.shiftKey ? 64 : 8;
+        resSlider.value = String(Math.min(parseInt(resSlider.max), parseInt(resSlider.value) + step));
+        updateValDisplays();
+        debouncedRegen();
+        break;
+      }
+      case 'ArrowDown': {
+        const step = e.shiftKey ? 64 : 8;
+        resSlider.value = String(Math.max(parseInt(resSlider.min), parseInt(resSlider.value) - step));
+        updateValDisplays();
+        debouncedRegen();
+        break;
+      }
+      case '=':
+      case '+':
+        state.zoom = Math.min(8, state.zoom * 1.15);
+        break;
+      case '-':
+      case '_':
+        state.zoom = Math.max(0.25, state.zoom / 1.15);
+        break;
+      case '0':
+        state.zoom = 1.0;
+        break;
+      case '[': {
+        const step = e.shiftKey ? 3 : 1;
+        subdivSlider.value = String(Math.max(parseInt(subdivSlider.min), parseInt(subdivSlider.value) - step));
+        updateValDisplays();
+        debouncedRegen();
+        break;
+      }
+      case ']': {
+        const step = e.shiftKey ? 3 : 1;
+        subdivSlider.value = String(Math.min(parseInt(subdivSlider.max), parseInt(subdivSlider.value) + step));
+        updateValDisplays();
+        debouncedRegen();
+        break;
+      }
       case 's':
       case 'S':
         savePNG(canvas, seed);
@@ -448,11 +564,13 @@ export function setupUI(canvas: HTMLCanvasElement): void {
         const rh = () => '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0');
         fgColorInput.value = rh();
         bgColorInput.value = rh();
-        applyColors();
+        applyColors(); // handles frameBg sync if linked
         if (frameMode) {
-          frameBgInput.value = bgColorInput.value;
+          if (!frameBgLinked) {
+            frameBgInput.value = bgColorInput.value;
+            document.body.style.backgroundColor = frameBgInput.value;
+          }
           textColorInput.value = fgColorInput.value;
-          document.body.style.backgroundColor = frameBgInput.value;
           updateFrameLayout();
         }
         break;

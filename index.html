@@ -49,6 +49,7 @@
     }
     #ui select:hover { border-color: #fff; }
     #frameControls { display: flex; flex-direction: column; gap: 6px; }
+    #bpmControls { display: flex; flex-direction: column; gap: 6px; }
     #ui button:hover { border-color: #fff; }
     #ui button.active { border-color: #fff; background: rgba(255,255,255,0.1); }
     #ui .divider { border-top: 1px solid #333; margin: 2px 0; }
@@ -123,13 +124,24 @@
     <div class="divider"></div>
 
     <div class="row"><label>Speed</label><input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"><span class="val" id="speedVal">1.0</span></div>
-    <div class="row"><label>Period</label><input type="range" id="period" min="3" max="20" step="0.5" value="8"><span class="val" id="periodVal">8s</span></div>
+    <div class="row"><label>Period</label><input type="range" id="period" min="1" max="64" step="0.5" value="8"><span class="val" id="periodVal">8s</span></div>
+    <div class="row"><label>BPM</label><button id="bpmToggle">OFF</button></div>
+    <div id="bpmControls" style="display:none;">
+      <div class="row"><button id="tapTempo" style="flex:1">TAP</button><span class="val" id="bpmVal" style="min-width:50px;text-align:center;color:#fff">120</span></div>
+      <div class="row"><label>Bars</label><select id="bpmBars">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="4" selected>4</option>
+        <option value="8">8</option>
+        <option value="16">16</option>
+      </select></div>
+    </div>
     <div class="row"><label>Events</label><button id="eventsToggle" class="active">ON</button></div>
     <div class="row"><label>FG</label><input type="color" id="fgColor" value="#ffffff"></div>
     <div class="row"><label>BG</label><input type="color" id="bgColor" value="#000000"></div>
     <div class="row"><label>Frame</label><button id="frameToggle">OFF</button></div>
     <div id="frameControls" style="display:none;">
-      <div class="row"><label>Frame BG</label><input type="color" id="frameBg" value="#000000"></div>
+      <div class="row"><label>Frame BG</label><input type="color" id="frameBg" value="#000000"><button id="frameBgLink" class="active" title="Link to grid BG">🔗</button></div>
       <div class="row"><label>Ratio</label><select id="frameRatio">
         <option value="free">Free</option>
         <option value="1:1">1:1</option>
@@ -166,7 +178,7 @@
       <button id="savePng">💾 PNG</button>
       <button id="recordWebm">⏺ REC</button>
     </div>
-    <div class="hint">Space: play/pause · ←→: seed · R: rand · C: colors · F: frame · S: png</div>
+    <div class="hint">Space · ←→ seed · ↑↓ res · [] subdiv · +− zoom · 0 reset · R rand · C colors · F frame</div>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
