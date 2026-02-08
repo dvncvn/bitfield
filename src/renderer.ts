@@ -20,6 +20,7 @@ import {
   applyScanline,
   invertBitmap,
 } from './events';
+import { renderCalm } from './calm';
 
 /* ── Colour helpers ── */
 
@@ -117,7 +118,7 @@ export function initRenderer(
   if (opts.gridOverride) {
     (config as any).gridRes = opts.gridOverride;
   }
-  if (opts.subdivOverride !== undefined) {
+  if (opts.subdivOverride !== undefined && !config.calm) {
     (config as any).subdivDepth = opts.subdivOverride;
   }
   if (opts.periodOverride !== undefined) {
@@ -279,40 +280,45 @@ export function renderFrame(state: RendererState): void {
 
   gridBuffer.fill(0);
 
-  for (const rs of rects) {
-    rs.rng = createPRNG(rs.rngSeed);
+  if (config.calm) {
+    // Calm interstitial — simple geometric composition, bypass BSP
+    renderCalm(gridBuffer, gridW, gridH, config.seed, t);
+  } else {
+    for (const rs of rects) {
+      rs.rng = createPRNG(rs.rngSeed);
 
-    let currentRule = rs.rule;
-    if (state.eventsEnabled) {
-      for (const ev of rs.events) {
-        if (ev.type === 'ruleSwap' && isRuleSwapped(ev, t)) {
-          currentRule = rs.altRule;
-          break;
+      let currentRule = rs.rule;
+      if (state.eventsEnabled) {
+        for (const ev of rs.events) {
+          if (ev.type === 'ruleSwap' && isRuleSwapped(ev, t)) {
+            currentRule = rs.altRule;
+            break;
+          }
         }
       }
-    }
 
-    FILL_FNS[currentRule](rs.bitmap, rs.bw, rs.bh, rs.rect, t, rs.rng, params);
+      FILL_FNS[currentRule](rs.bitmap, rs.bw, rs.bh, rs.rect, t, rs.rng, params);
 
-    if (state.eventsEnabled) {
-      for (const ev of rs.events) {
-        if (ev.type === 'invert' && isInvertActive(ev, t)) {
-          invertBitmap(rs.bitmap);
-        }
-        if (ev.type === 'scanline') {
-          const sy = scanlineY(ev, t);
-          if (sy >= 0) applyScanline(rs.bitmap, rs.bw, rs.bh, sy);
+      if (state.eventsEnabled) {
+        for (const ev of rs.events) {
+          if (ev.type === 'invert' && isInvertActive(ev, t)) {
+            invertBitmap(rs.bitmap);
+          }
+          if (ev.type === 'scanline') {
+            const sy = scanlineY(ev, t);
+            if (sy >= 0) applyScanline(rs.bitmap, rs.bw, rs.bh, sy);
+          }
         }
       }
-    }
 
-    const rx = rs.rect.x;
-    const ry = rs.rect.y;
-    for (let y = 0; y < rs.bh; y++) {
-      const srcRow = y * rs.bw;
-      const dstRow = (ry + y) * gridW + rx;
-      for (let x = 0; x < rs.bw; x++) {
-        gridBuffer[dstRow + x] = rs.bitmap[srcRow + x];
+      const rx = rs.rect.x;
+      const ry = rs.rect.y;
+      for (let y = 0; y < rs.bh; y++) {
+        const srcRow = y * rs.bw;
+        const dstRow = (ry + y) * gridW + rx;
+        for (let x = 0; x < rs.bw; x++) {
+          gridBuffer[dstRow + x] = rs.bitmap[srcRow + x];
+        }
       }
     }
   }

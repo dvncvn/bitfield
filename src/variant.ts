@@ -43,22 +43,22 @@ const CALM_RULES: RuleType[] = ['lines', 'dots', 'gradient', 'noise'];
 export function getVariantConfig(seed: number): VariantConfig {
   const rng = createPRNG(seed * 7919 + 31); // spread seeds
 
-  // ~15% chance of a calm interstitial
-  const isCalm = rng.random() < 0.15;
+  // ~20% chance of a calm interstitial
+  const isCalm = rng.random() < 0.20;
 
   if (isCalm) {
     const rule = rng.randChoice(CALM_RULES);
     return {
       seed,
       gridRes: GRID_OPTIONS[rng.randInt(0, 4)],
-      subdivDepth: rng.random() < 0.6 ? 0 : 1, // 0 = full canvas, 1 = one split
-      minRectCells: 32,
+      subdivDepth: 0, // 0 = single full-canvas rect
+      minRectCells: 999, // prevent any splitting
       activeRules: [rule],
-      periodMs: rng.randInt(8000, 16001), // slower
+      periodMs: rng.randInt(10000, 20001), // very slow
       events: [],
       flickerProb: 0,
       invertProb: 0,
-      stopProb: 0.9, // high stop prob = very few rects
+      stopProb: 1.0, // always stop — no splitting at all
       calm: true,
     };
   }
