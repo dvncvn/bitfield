@@ -678,11 +678,26 @@ export function setupUI(canvas: HTMLCanvasElement): void {
 
   // === Keyboard shortcuts ===
   const uiEl = document.getElementById('ui')!;
+  const uiToggleBtn = document.getElementById('ui-toggle')!;
+  const uiCloseBtn = document.getElementById('ui-close')!;
+
+  function openUI() {
+    uiEl.classList.add('open');
+    uiToggleBtn.classList.add('hidden');
+  }
+  function closeUI() {
+    uiEl.classList.remove('open');
+    uiToggleBtn.classList.remove('hidden');
+  }
+
+  uiToggleBtn.addEventListener('click', openUI);
+  uiCloseBtn.addEventListener('click', closeUI);
+
   window.addEventListener('keydown', (e) => {
     // Cmd+. or Ctrl+. to toggle UI
     if (e.key === '.' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      uiEl.style.display = uiEl.style.display === 'none' ? '' : 'none';
+      uiEl.classList.contains('open') ? closeUI() : openUI();
       return;
     }
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
@@ -821,7 +836,8 @@ export function setupUI(canvas: HTMLCanvasElement): void {
 
   // Intro sequence
   const introHint = document.getElementById('intro-hint')!;
-  introHint.textContent = 'cmd + . to open controls';
+  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  introHint.textContent = isMobile ? 'tap + to open controls' : 'cmd + . to open controls';
   introHint.style.display = 'block';
 
   setTimeout(() => {
