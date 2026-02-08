@@ -11,13 +11,14 @@ const NOUNS = [
   'slab', 'ring', 'node', 'seam', 'span', 'axis',
   'core', 'dome', 'rift', 'dust', 'echo', 'wake', 'mono', 'poly',
   'lfo', 'noise', 'osc', 'sine', 'triangle', 'wave', 'square', 'saw', 'reverb', 'freeze',
+  'place', 'focus', 'shine', 'plane', 'vary', 'veil', 'sheen', 'pull', 'polar',
 ];
 
 const MODIFIERS = [
   'soft', 'deep', 'slow', 'low', 'raw', 'thin',
   'cold', 'flat', 'dark', 'dim', 'pale', 'null',
   'half', 'late', 'long', 'lost', 'warm', 'wide',
-  'still', 'dead', 'bare', 'faint', 'dense',
+  'still', 'bare', 'faint', 'dense',
   'hollow', 'inner', 'outer', 'minor', 'quiet', 'lucid',
 ];
 
@@ -25,7 +26,7 @@ const FRAGMENTS = [
   'no exit', 'end loop', 'sub zero', 'half light', 'low end',
   'after dark', 'no signal', 'all clear', 'flat line', 'zero sum',
   'false dawn', 'last scan', 'soft reset', 'deep cut', 'slow burn',
-  'night mode', 'grey area', 'dead air', 'raw data', 'soft focus',
+  'night mode', 'grey area', 'raw data', 'soft focus',
   'open field', 'lost time', 'near void', 'far grid', 'dim pulse', 'warm static',
   'keep hope', 'stay close', 'be still', 'breathe slow', 'hold on',
   'let go', 'move soft', 'look up', 'feel more', 'stay warm',
