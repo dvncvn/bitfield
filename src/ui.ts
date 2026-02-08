@@ -1,5 +1,6 @@
 import { initRenderer, renderFrame, hexToABGR, type RendererState, type InitOptions } from './renderer';
 import { savePNG, recordWebM } from './export';
+import { generateText, glitchText } from './gentext';
 
 export function setupUI(canvas: HTMLCanvasElement): void {
   const params = new URLSearchParams(window.location.search);
@@ -23,6 +24,8 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   const frameRatioSelect = document.getElementById('frameRatio') as HTMLSelectElement;
   const frameShapeSelect = document.getElementById('frameShape') as HTMLSelectElement;
   const textToggleBtn = document.getElementById('textToggle')!;
+  const textControlsEl = document.getElementById('textControls')!;
+  const genTextToggleBtn = document.getElementById('genTextToggle')!;
   const textColorInput = document.getElementById('textColor') as HTMLInputElement;
   const textSizeSlider = document.getElementById('textSize') as HTMLInputElement;
   const textSizeVal = document.getElementById('textSizeVal')!;
@@ -124,6 +127,7 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     periodSlider.value = (3 + r() * 17).toFixed(1);                // 3–20
     seed = Math.floor(Math.random() * 256);
     regenerate();
+    applyGenText();
   }
 
   function applyLiveParams() {
@@ -161,6 +165,7 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   function setSeed(s: number) {
     seed = ((s % 256) + 256) % 256;
     regenerate();
+    applyGenText();
   }
 
   function togglePlay() {
@@ -213,6 +218,144 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   fgColorInput.addEventListener('input', applyColors);
   bgColorInput.addEventListener('input', applyColors);
 
+  // === Text overlay (works in both fullscreen and frame mode) ===
+  let textMode = true;
+  let genTextMode = true;
+  const frameTitleEl = document.getElementById('frame-title')!;
+  const frameSubEl = document.getElementById('frame-sub')!;
+  const frameDetailEl = document.getElementById('frame-detail')!;
+
+  function updateTextOverlay() {
+    const textVisible = textMode;
+    frameTextEl.style.display = textVisible ? 'flex' : 'none';
+    textControlsEl.style.display = textVisible ? '' : 'none';
+
+    // Fullscreen: title only. Frame mode: all three.
+    frameSubEl.style.display = (!frameMode && textVisible) ? 'none' : '';
+    frameDetailEl.style.display = (!frameMode && textVisible) ? 'none' : '';
+
+    // Reset positioning
+    frameTextEl.style.left = '';
+    frameTextEl.style.right = '';
+    frameTextEl.style.top = '';
+    frameTextEl.style.bottom = '';
+    frameTextEl.style.width = '';
+    frameTextEl.style.height = '';
+    frameTextEl.style.maxWidth = '';
+    frameTextEl.style.textAlign = '';
+    frameTextEl.style.alignItems = '';
+    frameTextEl.style.justifyContent = '';
+    frameTextEl.style.paddingLeft = '';
+
+    if (!textVisible) return;
+
+    // Text color & size
+    frameTextEl.style.color = textColorInput.value;
+    const scale = parseFloat(textSizeSlider.value);
+    frameTextEl.style.setProperty('--frame-title-size', (22 * scale) + 'px');
+    frameTextEl.style.setProperty('--frame-sub-size', (11 * scale) + 'px');
+    frameTextEl.style.setProperty('--frame-detail-size', (9 * scale) + 'px');
+
+    const pos = textPositionSelect.value;
+    const pad = 24;
+
+    if (frameMode) {
+      // Frame mode: position text beside the canvas
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const canvasRect = canvas.getBoundingClientRect();
+      const canvasLeft = canvasRect.left;
+      const canvasRight = vw - canvasRect.right;
+      const canvasTop = canvasRect.top;
+      const canvasBottom = canvasRect.bottom;
+      const sideW = Math.max(canvasLeft, canvasRight) - pad * 2;
+
+      switch (pos) {
+        case 'tl':
+          frameTextEl.style.left = pad + 'px';
+          frameTextEl.style.top = canvasTop + 'px';
+          frameTextEl.style.width = sideW + 'px';
+          break;
+        case 'bl':
+          frameTextEl.style.left = pad + 'px';
+          frameTextEl.style.bottom = (vh - canvasBottom) + 'px';
+          frameTextEl.style.width = sideW + 'px';
+          break;
+        case 'tr':
+          frameTextEl.style.right = pad + 'px';
+          frameTextEl.style.top = canvasTop + 'px';
+          frameTextEl.style.width = sideW + 'px';
+          canvas.style.right = '';
+          canvas.style.left = (Math.min(vw, window.innerHeight) * 0.06) + 'px';
+          break;
+        case 'br':
+          frameTextEl.style.right = pad + 'px';
+          frameTextEl.style.bottom = (vh - canvasBottom) + 'px';
+          frameTextEl.style.width = sideW + 'px';
+          canvas.style.right = '';
+          canvas.style.left = (Math.min(vw, window.innerHeight) * 0.06) + 'px';
+          break;
+        case 'cl':
+          frameTextEl.style.left = canvasLeft + 'px';
+          frameTextEl.style.top = canvasTop + 'px';
+          frameTextEl.style.width = (canvasRect.width) + 'px';
+          frameTextEl.style.height = (canvasRect.height) + 'px';
+          frameTextEl.style.justifyContent = 'center';
+          break;
+        case 'cc':
+          frameTextEl.style.left = canvasLeft + 'px';
+          frameTextEl.style.top = canvasTop + 'px';
+          frameTextEl.style.width = (canvasRect.width) + 'px';
+          frameTextEl.style.height = (canvasRect.height) + 'px';
+          frameTextEl.style.textAlign = 'center';
+          frameTextEl.style.alignItems = 'center';
+          frameTextEl.style.justifyContent = 'center';
+          break;
+      }
+    } else {
+      // Fullscreen mode: overlay text on the canvas
+      frameTextEl.style.width = 'auto';
+      frameTextEl.style.maxWidth = '40vw';
+      switch (pos) {
+        case 'tl':
+          frameTextEl.style.left = pad + 'px';
+          frameTextEl.style.top = pad + 'px';
+          break;
+        case 'bl':
+          frameTextEl.style.left = pad + 'px';
+          frameTextEl.style.bottom = pad + 'px';
+          break;
+        case 'tr':
+          frameTextEl.style.right = pad + 'px';
+          frameTextEl.style.top = pad + 'px';
+          break;
+        case 'br':
+          frameTextEl.style.right = pad + 'px';
+          frameTextEl.style.bottom = pad + 'px';
+          break;
+        case 'cl':
+          frameTextEl.style.left = '0';
+          frameTextEl.style.top = '0';
+          frameTextEl.style.width = '100vw';
+          frameTextEl.style.height = '100vh';
+          frameTextEl.style.maxWidth = '';
+          frameTextEl.style.justifyContent = 'center';
+          frameTextEl.style.paddingLeft = '24px';
+          break;
+        case 'cc':
+          frameTextEl.style.left = '0';
+          frameTextEl.style.top = '0';
+          frameTextEl.style.width = '100vw';
+          frameTextEl.style.height = '100vh';
+          frameTextEl.style.maxWidth = '';
+          frameTextEl.style.textAlign = 'center';
+          frameTextEl.style.alignItems = 'center';
+          frameTextEl.style.justifyContent = 'center';
+          break;
+      }
+    }
+  }
+
   // === Frame mode ===
   let frameMode = false;
 
@@ -220,13 +363,6 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     if (!frameMode) {
       document.body.classList.remove('framed');
       document.body.style.backgroundColor = '';
-      frameTextEl.style.color = '';
-      frameTextEl.style.display = '';  // back to CSS default (none)
-      frameTextEl.style.left = '';
-      frameTextEl.style.right = '';
-      frameTextEl.style.top = '';
-      frameTextEl.style.bottom = '';
-      frameTextEl.style.width = '';
       frameControlsEl.style.display = 'none';
       canvas.style.top = '';
       canvas.style.right = '';
@@ -235,12 +371,12 @@ export function setupUI(canvas: HTMLCanvasElement): void {
       canvas.style.height = '';
       canvas.style.borderRadius = '';
       canvas.style.overflow = '';
+      updateTextOverlay();
       return;
     }
 
     document.body.classList.add('framed');
     document.body.style.backgroundColor = frameBgInput.value;
-    frameTextEl.style.color = fgColorInput.value;
     frameControlsEl.style.display = '';
 
     const vw = window.innerWidth;
@@ -300,63 +436,7 @@ export function setupUI(canvas: HTMLCanvasElement): void {
       }
     }
 
-    // Text visibility
-    const textVisible = textToggleBtn.classList.contains('active');
-    frameTextEl.style.display = textVisible ? 'flex' : 'none';
-
-    if (textVisible) {
-      // Text color
-      frameTextEl.style.color = textColorInput.value;
-
-      // Text size multiplier
-      const scale = parseFloat(textSizeSlider.value);
-      frameTextEl.style.setProperty('--frame-title-size', (22 * scale) + 'px');
-      frameTextEl.style.setProperty('--frame-sub-size', (11 * scale) + 'px');
-      frameTextEl.style.setProperty('--frame-detail-size', (9 * scale) + 'px');
-
-      // Text position
-      const pos = textPositionSelect.value;
-      const canvasLeft = vw - w - pad;
-      const canvasBottom = top + h;
-
-      // Reset
-      frameTextEl.style.left = '';
-      frameTextEl.style.right = '';
-      frameTextEl.style.top = '';
-      frameTextEl.style.bottom = '';
-
-      const textMaxW = pos.endsWith('r')
-        ? (vw - w - pad * 2.5)  // text on left when art is right — but text is right of art
-        : (canvasLeft - pad);
-
-      switch (pos) {
-        case 'tl':
-          frameTextEl.style.left = pad + 'px';
-          frameTextEl.style.top = top + 'px';
-          frameTextEl.style.width = (canvasLeft - pad * 2) + 'px';
-          break;
-        case 'bl':
-          frameTextEl.style.left = pad + 'px';
-          frameTextEl.style.bottom = (vh - canvasBottom) + 'px';
-          frameTextEl.style.width = (canvasLeft - pad * 2) + 'px';
-          break;
-        case 'tr':
-          frameTextEl.style.right = pad + 'px';
-          frameTextEl.style.top = top + 'px';
-          frameTextEl.style.width = (canvasLeft - pad * 2) + 'px';
-          // Shift canvas to left side
-          canvas.style.right = '';
-          canvas.style.left = pad + 'px';
-          break;
-        case 'br':
-          frameTextEl.style.right = pad + 'px';
-          frameTextEl.style.bottom = (vh - canvasBottom) + 'px';
-          frameTextEl.style.width = (canvasLeft - pad * 2) + 'px';
-          canvas.style.right = '';
-          canvas.style.left = pad + 'px';
-          break;
-      }
-    }
+    updateTextOverlay();
   }
 
   function toggleFrame() {
@@ -394,17 +474,64 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   frameRatioSelect.addEventListener('change', () => { if (frameMode) updateFrameLayout(); });
   frameShapeSelect.addEventListener('change', () => { if (frameMode) updateFrameLayout(); });
 
+  let genTextBase = '';
+  let glitchInterval = 0;
+
+  function startGlitchLoop() {
+    stopGlitchLoop();
+    glitchInterval = window.setInterval(() => {
+      if (genTextMode && textMode) {
+        frameTitleEl.textContent = glitchText(genTextBase, 0.12 + Math.random() * 0.1);
+      }
+    }, 120);
+  }
+
+  function stopGlitchLoop() {
+    if (glitchInterval) { clearInterval(glitchInterval); glitchInterval = 0; }
+  }
+
+  function applyGenText() {
+    if (genTextMode) {
+      genTextBase = generateText(seed);
+      frameTitleEl.textContent = genTextBase;
+      frameTitleEl.contentEditable = 'false';
+      if (textMode) startGlitchLoop();
+    } else {
+      stopGlitchLoop();
+      frameTitleEl.contentEditable = 'true';
+    }
+  }
+
   textToggleBtn.addEventListener('click', () => {
-    textToggleBtn.classList.toggle('active');
-    textToggleBtn.textContent = textToggleBtn.classList.contains('active') ? 'ON' : 'OFF';
-    if (frameMode) updateFrameLayout();
+    textMode = !textMode;
+    textToggleBtn.textContent = textMode ? 'ON' : 'OFF';
+    textToggleBtn.classList.toggle('active', textMode);
+    if (!textMode) {
+      stopGlitchLoop();
+    } else if (genTextMode) {
+      startGlitchLoop();
+    }
+    if (frameMode) updateFrameLayout(); else updateTextOverlay();
   });
-  textColorInput.addEventListener('input', () => { if (frameMode) updateFrameLayout(); });
+
+  genTextToggleBtn.addEventListener('click', () => {
+    genTextMode = !genTextMode;
+    genTextToggleBtn.textContent = genTextMode ? 'ON' : 'OFF';
+    genTextToggleBtn.classList.toggle('active', genTextMode);
+    applyGenText();
+    if (!genTextMode) stopGlitchLoop();
+  });
+
+  textColorInput.addEventListener('input', () => {
+    if (frameMode) updateFrameLayout(); else updateTextOverlay();
+  });
   textSizeSlider.addEventListener('input', () => {
     textSizeVal.textContent = parseFloat(textSizeSlider.value).toFixed(1);
-    if (frameMode) updateFrameLayout();
+    if (frameMode) updateFrameLayout(); else updateTextOverlay();
   });
-  textPositionSelect.addEventListener('change', () => { if (frameMode) updateFrameLayout(); });
+  textPositionSelect.addEventListener('change', () => {
+    if (frameMode) updateFrameLayout(); else updateTextOverlay();
+  });
 
   // === BPM sync ===
   let bpmMode = false;
@@ -564,20 +691,26 @@ export function setupUI(canvas: HTMLCanvasElement): void {
         const rh = () => '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0');
         fgColorInput.value = rh();
         bgColorInput.value = rh();
-        applyColors(); // handles frameBg sync if linked
+        applyColors();
+        textColorInput.value = fgColorInput.value;
         if (frameMode) {
           if (!frameBgLinked) {
             frameBgInput.value = bgColorInput.value;
             document.body.style.backgroundColor = frameBgInput.value;
           }
-          textColorInput.value = fgColorInput.value;
           updateFrameLayout();
+        } else {
+          updateTextOverlay();
         }
         break;
       }
       case 'f':
       case 'F':
         toggleFrame();
+        break;
+      case 't':
+      case 'T':
+        textToggleBtn.click();
         break;
       case 'r':
       case 'R':
@@ -623,4 +756,6 @@ export function setupUI(canvas: HTMLCanvasElement): void {
 
   // Boot
   regenerate();
+  applyGenText();
+  updateTextOverlay();
 }

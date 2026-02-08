@@ -50,6 +50,7 @@
     #ui select:hover { border-color: #fff; }
     #frameControls { display: flex; flex-direction: column; gap: 6px; }
     #bpmControls { display: flex; flex-direction: column; gap: 6px; }
+    #textControls { display: flex; flex-direction: column; gap: 6px; }
     #ui button:hover { border-color: #fff; }
     #ui button.active { border-color: #fff; background: rgba(255,255,255,0.1); }
     #ui .divider { border-top: 1px solid #333; margin: 2px 0; }
@@ -160,15 +161,22 @@
         <option value="circle">Circle</option>
         <option value="arch">Arch</option>
       </select></div>
-      <div class="divider"></div>
-      <div class="row"><label>Text</label><button id="textToggle" class="active">ON</button></div>
-      <div class="row"><label>Txt Color</label><input type="color" id="textColor" value="#ffffff"></div>
-      <div class="row"><label>Txt Size</label><input type="range" id="textSize" min="0.5" max="3" step="0.1" value="1"><span class="val" id="textSizeVal">1.0</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="row"><label>Text</label><button id="textToggle" class="active">ON</button></div>
+    <div id="textControls" style="display:none;">
+      <div class="row"><label>Gen</label><button id="genTextToggle" class="active">ON</button></div>
+      <div class="row"><label>Txt Color</label><input type="color" id="textColor" value="#38ff7e"></div>
+      <div class="row"><label>Txt Size</label><input type="range" id="textSize" min="0.5" max="12" step="0.1" value="9.3"><span class="val" id="textSizeVal">9.3</span></div>
       <div class="row"><label>Position</label><select id="textPosition">
-        <option value="tl">Top Left</option>
+        <option value="cc" selected>Center</option>
+        <option value="cl">Center Left</option>
         <option value="bl">Bottom Left</option>
-        <option value="tr">Top Right</option>
+        <option value="tl">Top Left</option>
         <option value="br">Bottom Right</option>
+        <option value="tr">Top Right</option>
       </select></div>
     </div>
 
@@ -178,7 +186,7 @@
       <button id="savePng">💾 PNG</button>
       <button id="recordWebm">⏺ REC</button>
     </div>
-    <div class="hint">Space · ←→ seed · ↑↓ res · [] subdiv · +− zoom · 0 reset · R rand · C colors · F frame</div>
+    <div class="hint">Space · ←→ seed · ↑↓ res · [] subdiv · +− zoom · 0 reset · R rand · C colors · T text · F frame</div>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
