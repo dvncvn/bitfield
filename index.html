@@ -5,27 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Monogrid Generative</title>
   <style>
+    @font-face {
+      font-family: 'Geist Pixel';
+      src: url('https://cdn.jsdelivr.net/npm/geist@1.7.0/dist/fonts/geist-pixel/GeistPixel-Square.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+  <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-    #canvas { display: block; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    #canvas { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     #ui {
       position: fixed; top: 16px; left: 16px; z-index: 10;
-      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-family: 'Geist Pixel', monospace;
       font-size: 12px; color: #fff;
-      display: flex; flex-direction: column; gap: 8px;
-      background: rgba(0,0,0,0.6); padding: 12px; border-radius: 4px;
-      user-select: none; min-width: 200px;
+      display: flex; flex-direction: column; gap: 6px;
+      background: rgba(0,0,0,0.7); padding: 14px; border-radius: 4px;
+      user-select: none; min-width: 220px;
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
     }
     #ui .row { display: flex; align-items: center; gap: 8px; }
-    #ui label { color: #888; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; min-width: 48px; }
+    #ui label { color: #888; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; min-width: 56px; }
     #ui input[type=range] { flex: 1; accent-color: #fff; }
+    #ui .val { color: #666; font-size: 10px; min-width: 28px; text-align: right; }
     #ui button {
       background: transparent; border: 1px solid #555; color: #fff;
-      padding: 3px 8px; border-radius: 3px; cursor: pointer; font-family: inherit; font-size: 11px;
+      padding: 3px 8px; border-radius: 3px; cursor: pointer; font-family: 'Geist Pixel', monospace; font-size: 11px;
     }
     #ui button:hover { border-color: #fff; }
+    #ui button.active { border-color: #fff; background: rgba(255,255,255,0.1); }
     #ui .seed-display { font-size: 16px; font-weight: bold; letter-spacing: 1px; }
-    #ui .hint { color: #555; font-size: 9px; margin-top: 4px; }
+    #ui .divider { border-top: 1px solid #333; margin: 2px 0; }
+    #ui .hint { color: #555; font-size: 9px; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -38,17 +51,24 @@
       <button id="playPause">❚❚</button>
       <button id="regenerate">↻</button>
     </div>
-    <div class="row"><label>Speed</label><input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"></div>
-    <div class="row"><label>Noise</label><input type="range" id="noise" min="0" max="1" step="0.05" value="0.5"></div>
-    <div class="row">
-      <label>Grid</label>
-      <select id="gridSize">
-        <option value="64">64</option>
-        <option value="96">96</option>
-        <option value="128" selected>128</option>
-        <option value="192">192</option>
-      </select>
-    </div>
+
+    <div class="divider"></div>
+
+    <div class="row"><label>Res</label><input type="range" id="resolution" min="32" max="512" step="8" value="128"><span class="val" id="resVal">128</span></div>
+    <div class="row"><label>Scale</label><input type="range" id="scale" min="0.1" max="6" step="0.1" value="1"><span class="val" id="scaleVal">1.0</span></div>
+    <div class="row"><label>Subdiv</label><input type="range" id="subdivide" min="1" max="8" step="1" value="5"><span class="val" id="subdivVal">5</span></div>
+    <div class="row"><label>Density</label><input type="range" id="density" min="0" max="1" step="0.05" value="0.5"><span class="val" id="densityVal">0.5</span></div>
+    <div class="row"><label>Noise</label><input type="range" id="noise" min="0" max="1" step="0.05" value="0.5"><span class="val" id="noiseVal">0.5</span></div>
+    <div class="row"><label>Warp</label><input type="range" id="warp" min="0" max="1" step="0.05" value="0"><span class="val" id="warpVal">0</span></div>
+
+    <div class="divider"></div>
+
+    <div class="row"><label>Speed</label><input type="range" id="speed" min="0.1" max="3" step="0.1" value="1"><span class="val" id="speedVal">1.0</span></div>
+    <div class="row"><label>Period</label><input type="range" id="period" min="3" max="20" step="0.5" value="8"><span class="val" id="periodVal">8s</span></div>
+    <div class="row"><label>Events</label><button id="eventsToggle" class="active">ON</button></div>
+
+    <div class="divider"></div>
+
     <div class="row">
       <button id="savePng">💾 PNG</button>
       <button id="recordWebm">⏺ REC</button>

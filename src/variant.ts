@@ -1,6 +1,6 @@
 import { createPRNG } from './prng';
 
-export type RuleType = 'noise' | 'dither' | 'automata' | 'reaction';
+export type RuleType = 'noise' | 'dither' | 'automata' | 'reaction' | 'lines' | 'streak' | 'columns' | 'gradient';
 
 export interface EventDef {
   /** Normalised time in [0, 1) when event fires */
@@ -25,7 +25,7 @@ export interface VariantConfig {
 }
 
 const GRID_OPTIONS: (64 | 96 | 128 | 192)[] = [64, 96, 128, 192];
-const ALL_RULES: RuleType[] = ['noise', 'dither', 'automata', 'reaction'];
+const ALL_RULES: RuleType[] = ['noise', 'dither', 'automata', 'reaction', 'lines', 'streak', 'columns', 'gradient'];
 
 /**
  * Deterministically derive a complete variant config from a seed (0–255).
@@ -36,12 +36,14 @@ export function getVariantConfig(seed: number): VariantConfig {
 
   // Family determines dominant rule
   const family = (seed >> 6) & 3; // 0–3
-  const dominantRule = ALL_RULES[family];
+  // Map families to dominant rules, cycling through all 8
+  const familyRules: RuleType[] = ['noise', 'streak', 'columns', 'gradient'];
+  const dominantRule = familyRules[family];
 
-  // Pick 2–3 active rules, always including the dominant one
+  // Pick 3–5 active rules, always including the dominant one
   const others = ALL_RULES.filter((r) => r !== dominantRule);
   rng.shuffle(others);
-  const ruleCount = rng.randInt(2, 4); // 2 or 3
+  const ruleCount = rng.randInt(3, 6); // 3–5
   const activeRules: RuleType[] = [dominantRule, ...others.slice(0, ruleCount - 1)];
 
   // Grid resolution — weighted by seed bits
@@ -55,10 +57,11 @@ export function getVariantConfig(seed: number): VariantConfig {
   // Timing
   const periodMs = rng.randInt(6000, 12001); // 6–12s
 
-  // Events (4–8 per loop)
-  const eventCount = rng.randInt(4, 9);
+  // Events (1–3 per loop, subtle)
+  const eventCount = rng.randInt(1, 4);
   const events: EventDef[] = [];
-  const eventTypes: EventDef['type'][] = ['invert', 'scanline', 'ruleSwap'];
+  // Bias toward scanline/ruleSwap; invert is rarer
+  const eventTypes: EventDef['type'][] = ['scanline', 'ruleSwap', 'ruleSwap', 'scanline', 'invert'];
   for (let i = 0; i < eventCount; i++) {
     events.push({
       t: rng.random(),
@@ -68,9 +71,8 @@ export function getVariantConfig(seed: number): VariantConfig {
   }
   events.sort((a, b) => a.t - b.t);
 
-  // Flicker / inversion
-  const flickerProb = rng.randFloat(0, 0.08);
-  const invertProb = rng.randFloat(0, 0.15);
+  const flickerProb = 0;
+  const invertProb = 0;
 
   return {
     seed,

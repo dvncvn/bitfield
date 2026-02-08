@@ -4,7 +4,7 @@ import type { EventDef } from './variant';
  * Check whether an invert-pulse event is active at time t.
  * Pulse lasts for `duration` (normalised) centered on event.t.
  */
-export function isInvertActive(event: EventDef, t: number, duration = 0.06): boolean {
+export function isInvertActive(event: EventDef, t: number, duration = 0.03): boolean {
   const half = duration / 2;
   const d = Math.abs(wrapDist(t, event.t));
   return d < half;
@@ -15,7 +15,7 @@ export function isInvertActive(event: EventDef, t: number, duration = 0.06): boo
  * or -1 if the scanline event isn't active at time t.
  * Active for `duration` around event.t.
  */
-export function scanlineY(event: EventDef, t: number, duration = 0.12): number {
+export function scanlineY(event: EventDef, t: number, duration = 0.08): number {
   const half = duration / 2;
   const d = signedWrapDist(t, event.t);
   if (Math.abs(d) > half) return -1;

@@ -1,6 +1,7 @@
 import { loopSin, loopCos } from '../loop';
 import type { Rect } from '../subdivide';
 import type { PRNGHelper } from '../prng';
+import type { FillParams } from './types';
 
 // 8×8 Bayer matrix (normalised to [0, 1))
 const BAYER8 = [
@@ -15,8 +16,8 @@ const BAYER8 = [
 ].map((v) => v / 64);
 
 /**
- * Ordered dithering fill: apply Bayer dithering over an animated gradient.
- * Gradient direction and phase animate with loop-t.
+ * Ordered dithering fill: Bayer dithering over an animated gradient.
+ * Scale controls gradient zoom; density shifts the value range.
  */
 export function fillDither(
   bitmap: Uint8Array,
@@ -25,23 +26,33 @@ export function fillDither(
   _rect: Rect,
   t: number,
   rng: PRNGHelper,
-  _noiseAmount: number,
+  params: FillParams,
 ): void {
-  // Gradient angle varies per rect, phase sweeps with t
   const angle = rng.random() * Math.PI * 2;
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
   const phase = loopSin(t);
   const phaseB = loopCos(t + 0.25);
 
-  const maxDim = Math.max(bw, bh) || 1;
+  // Exponential scale: lower = many more gradient cycles, higher = broad sweep
+  const gradScale = Math.pow(Math.max(0.1, params.scale), 1.5);
+  const maxDim = (Math.max(bw, bh) || 1) * gradScale;
+
+  // Density shifts the value bias
+  const bias = (params.density - 0.5) * 0.4;
+
+  // Bayer tile size varies: smaller scale → 4x4 effective, larger → 16x16 effective
+  const tileShift = params.scale < 0.5 ? 2 : params.scale < 1.5 ? 3 : 4;
+  const tileMask = (1 << tileShift) - 1;
 
   for (let y = 0; y < bh; y++) {
     for (let x = 0; x < bw; x++) {
-      // Normalised gradient value [0, 1]
       const grad = ((x * dx + y * dy) / maxDim + phase) % 1;
-      const value = (grad + phaseB * 0.3) % 1;
-      const bayerVal = BAYER8[(y & 7) * 8 + (x & 7)];
+      const value = Math.min(1, Math.max(0, (grad + phaseB * 0.3) % 1 + bias));
+      // Sample Bayer at effective tile size by scaling coordinates
+      const bx = (x >> (tileShift - 3)) & 7;
+      const by = (y >> (tileShift - 3)) & 7;
+      const bayerVal = BAYER8[(by & 7) * 8 + (bx & 7)];
       bitmap[y * bw + x] = value < bayerVal ? 1 : 0;
     }
   }
