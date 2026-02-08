@@ -12,6 +12,8 @@ const NOUNS = [
   'core', 'dome', 'rift', 'dust', 'echo', 'wake', 'mono', 'poly',
   'lfo', 'noise', 'osc', 'sine', 'triangle', 'wave', 'square', 'saw', 'reverb', 'freeze',
   'place', 'focus', 'shine', 'plane', 'vary', 'veil', 'sheen', 'pull', 'polar',
+  'spectre', 'ether', 'mist',
+  'shapes', 'color', 'dawn', 'dusk',
 ];
 
 const MODIFIERS = [

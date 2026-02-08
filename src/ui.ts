@@ -1,4 +1,4 @@
-import { initRenderer, renderFrame, hexToABGR, type RendererState, type InitOptions } from './renderer';
+import { initRenderer, renderFrame, hexToABGR, generateRevealMap, type RendererState, type InitOptions } from './renderer';
 import { savePNG, recordWebM } from './export';
 import { generateText, glitchText } from './gentext';
 
@@ -683,10 +683,12 @@ export function setupUI(canvas: HTMLCanvasElement): void {
 
   function openUI() {
     uiEl.classList.add('open');
+    document.body.classList.add('ui-open');
     uiToggleBtn.classList.add('hidden');
   }
   function closeUI() {
     uiEl.classList.remove('open');
+    document.body.classList.remove('ui-open');
     uiToggleBtn.classList.remove('hidden');
   }
 
@@ -700,6 +702,16 @@ export function setupUI(canvas: HTMLCanvasElement): void {
       uiEl.classList.contains('open') ? closeUI() : openUI();
       return;
     }
+    const helpOverlay = document.getElementById('help-overlay')!;
+    if (e.key === 'Escape') {
+      helpOverlay.classList.remove('open');
+      return;
+    }
+    if (e.key === '?') {
+      helpOverlay.classList.toggle('open');
+      return;
+    }
+    if (helpOverlay.classList.contains('open')) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
     if ((e.target as HTMLElement).isContentEditable) return;
     switch (e.key) {
@@ -830,9 +842,19 @@ export function setupUI(canvas: HTMLCanvasElement): void {
 
   // Boot
   regenerate();
-  applyGenText();
-  updateTextOverlay();
+
+  // Boot reveal: generate dissolve map once, trigger after text delay
+  state!.revealMap = generateRevealMap(state!.gridW, state!.gridH);
+  state!.revealStart = -1;
+
+  // Boot: hide normal text, show big "bitfield" with glitch
+  const bootTextEl = document.getElementById('boot-text')!;
+  frameTextEl.style.display = 'none';
   if (autoMode) scheduleAutoAdvance();
+
+  const bootGlitch = window.setInterval(() => {
+    bootTextEl.textContent = glitchText('bitfield', 0.15 + Math.random() * 0.15);
+  }, 100);
 
   // Intro sequence
   const introHint = document.getElementById('intro-hint')!;
@@ -841,7 +863,11 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   introHint.style.display = 'block';
 
   setTimeout(() => {
-    canvas.classList.add('visible');
+    clearInterval(bootGlitch);
+    bootTextEl.classList.add('hidden');
+    state.revealStart = performance.now();
+    applyGenText();
+    updateTextOverlay();
   }, 2000);
   setTimeout(() => {
     introHint.classList.add('show');

@@ -3,12 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>mg — generative grid</title>
+  <title>bitfield</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
   <meta name="description" content="Looping generative pixel art. Deterministic patterns from noise, dither, automata, and geometry. Interactive, seedable, infinite.">
   <meta name="theme-color" content="#000000">
-  <meta property="og:title" content="mg — generative grid">
+  <meta property="og:title" content="bitfield">
   <meta property="og:description" content="Looping generative pixel art. Deterministic patterns from noise, dither, automata, and geometry.">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="/og-image.jpg">
   <style>
     @font-face {
       font-family: 'Geist Pixel';
@@ -21,53 +25,53 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-    #canvas { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; opacity: 0; transition: opacity 3.5s ease-in; }
-    #canvas.visible { opacity: 1; }
+    #canvas { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; transition: width 0.25s ease; }
+    body.ui-open #canvas { width: calc(100% - 240px); }
     #ui {
-      position: fixed; top: 16px; right: 16px; z-index: 10;
+      position: fixed; top: 0; right: 0; z-index: 10;
       display: none;
       font-family: 'Geist Pixel', monospace;
-      font-size: 12px; color: #fff;
+      font-size: 12px; color: #ccc;
       flex-direction: column; gap: 6px;
-      background: rgba(0,0,0,0.7); padding: 14px; border-radius: 4px;
-      user-select: none; min-width: 220px;
-      max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
+      background: #000; padding: 14px; border-radius: 0;
+      border-left: 1px solid #1a1a1a;
+      user-select: none; width: 240px;
+      height: 100vh; height: 100dvh;
       overflow-y: auto;
-      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
     }
     #ui.open {
       display: flex;
     }
     #ui .row { display: flex; align-items: center; gap: 8px; }
-    #ui label { color: #888; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; min-width: 56px; }
-    #ui input[type=range] { flex: 1; accent-color: #fff; }
-    #ui .val { color: #666; font-size: 10px; min-width: 28px; text-align: right; }
+    #ui label { color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; min-width: 56px; }
+    #ui input[type=range] { flex: 1; accent-color: #38ff7e; }
+    #ui .val { color: #38ff7e; font-size: 10px; min-width: 28px; text-align: right; }
     #ui button {
-      background: transparent; border: 1px solid #555; color: #fff;
-      padding: 3px 8px; border-radius: 3px; cursor: pointer; font-family: 'Geist Pixel', monospace; font-size: 11px;
+      background: transparent; border: 1px solid #1a1a1a; color: #666;
+      padding: 3px 8px; border-radius: 0; cursor: pointer; font-family: 'Geist Pixel', monospace; font-size: 11px;
     }
     #ui input[type=color] {
-      flex: 1; height: 22px; border: 1px solid #555; border-radius: 3px;
+      flex: 1; height: 22px; border: 1px solid #1a1a1a; border-radius: 0;
       background: transparent; cursor: pointer; padding: 0;
       -webkit-appearance: none; appearance: none;
     }
     #ui input[type=color]::-webkit-color-swatch-wrapper { padding: 1px; }
-    #ui input[type=color]::-webkit-color-swatch { border: none; border-radius: 2px; }
+    #ui input[type=color]::-webkit-color-swatch { border: none; border-radius: 0; }
     #ui select {
-      flex: 1; background: #111; border: 1px solid #555; color: #fff;
+      flex: 1; background: rgba(0,0,0,0.5); border: 1px solid #1a1a1a; color: #ccc;
       font-family: 'Geist Pixel', monospace; font-size: 10px;
-      padding: 2px 4px; border-radius: 3px; cursor: pointer;
+      padding: 2px 4px; border-radius: 0; cursor: pointer;
       -webkit-appearance: none; appearance: none;
     }
-    #ui select:hover { border-color: #fff; }
+    #ui select:hover { border-color: #38ff7e; }
     #frameControls { display: flex; flex-direction: column; gap: 6px; }
     #bpmControls { display: flex; flex-direction: column; gap: 6px; }
     #textControls { display: flex; flex-direction: column; gap: 6px; }
     #autoControls { display: flex; flex-direction: column; gap: 6px; }
-    #ui button:hover { border-color: #fff; }
-    #ui button.active { border-color: #fff; background: rgba(255,255,255,0.1); }
-    #ui .divider { border-top: 1px solid #333; margin: 2px 0; }
-    #ui .hint { color: #555; font-size: 9px; margin-top: 2px; }
+    #ui button:hover { border-color: #38ff7e; color: #ccc; }
+    #ui button.active { border-color: #38ff7e; color: #38ff7e; background: rgba(56,255,126,0.05); }
+    #ui .divider { border-top: 1px solid #1a1a1a; margin: 2px 0; }
+    #ui .hint { color: #333; font-size: 9px; margin-top: 2px; }
 
     /* ── Frame mode ── */
     #frame-text {
@@ -120,33 +124,85 @@
       transition: opacity 0.8s ease;
     }
     #intro-hint.show { opacity: 1; }
+    #help-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.92);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+      padding: 4vw;
+    }
+    #help-overlay.open { display: flex; }
+    #help-inner {
+      font-family: 'Geist Pixel', monospace;
+      color: #fff;
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .help-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .help-cell {
+      display: flex; flex-direction: column;
+      justify-content: center;
+      padding: 2.5vh 2vw;
+      border: 1px solid #1a1a1a;
+      overflow: hidden;
+    }
+    .help-key {
+      color: #38ff7e;
+      font-size: clamp(36px, 6vw, 80px);
+      white-space: nowrap;
+      margin-bottom: 0.2em;
+    }
+    .help-desc {
+      color: #666;
+      font-size: clamp(14px, 1.8vw, 26px);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    #boot-text {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Geist Pixel', monospace;
+      color: #38ff7e;
+      font-size: 12vw;
+      letter-spacing: 0.02em;
+      text-transform: lowercase;
+      pointer-events: none;
+      user-select: none; -webkit-user-select: none;
+    }
+    #boot-text.hidden { display: none; }
     body.framed { background: #e8ddd3; }
     body.framed #ui {
-      background: rgba(0,0,0,0.55);
+      background: rgba(0,0,0,0.92);
     }
     body.framed #frame-text { display: flex; flex-direction: column; }
     #ui-toggle {
       position: fixed; top: 12px; right: 12px; z-index: 11;
       width: 32px; height: 32px;
-      background: rgba(0,0,0,0.5); border: 1px solid #333;
-      border-radius: 4px; color: #888; font-size: 16px;
+      background: rgba(0,0,0,0.92); border: 1px solid #1a1a1a;
+      border-radius: 0; color: #666; font-size: 16px;
       cursor: pointer; display: none; align-items: center; justify-content: center;
       font-family: 'Geist Pixel', monospace;
-      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       transition: opacity 0.3s;
     }
-    #ui-toggle:hover { border-color: #fff; color: #fff; }
+    #ui-toggle:hover { border-color: #38ff7e; color: #38ff7e; }
     #ui-toggle.hidden { opacity: 0; pointer-events: none; }
     @media (pointer: coarse), (hover: none) {
       #ui-toggle { display: flex; }
       #ui-toggle.hidden { display: none; }
       #ui {
         font-size: 10px;
-        min-width: 180px;
+        width: 200px;
         padding: 10px;
-        top: 10px; right: 10px;
-        max-height: calc(100dvh - 20px);
       }
+      body.ui-open #canvas { width: calc(100% - 200px); }
       #ui input[type="range"] { width: 80px; }
       #ui .row { gap: 5px; }
       #ui button, #ui select { font-size: 10px; }
@@ -155,6 +211,7 @@
 </head>
 <body>
   <canvas id="canvas"></canvas>
+  <div id="boot-text">bitfield</div>
   <button id="ui-toggle" title="Open controls">+</button>
   <div id="meta-ring">
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -170,7 +227,7 @@
     <div id="frame-title" contenteditable spellcheck="false">Title</div>
   </div>
   <div id="ui">
-    <button id="ui-close" style="align-self:flex-end; background:none; border:none; color:#888; font-size:14px; cursor:pointer; font-family:'Geist Pixel',monospace; padding:0 0 4px;">✕</button>
+    <button id="ui-close" style="align-self:flex-end; background:none; border:1px solid #1a1a1a; color:#666; font-size:11px; cursor:pointer; font-family:'Geist Pixel',monospace; padding:2px 6px;">✕</button>
     <div class="row">
       <button id="prevSeed">◀</button>
       <button id="nextSeed">▶</button>
@@ -262,6 +319,27 @@
     <div class="hint">Space · ←→ seed · ↑↓ res · [] subdiv · +− zoom · 0 reset · A auto · R rand · C colors · T text · F frame</div>
   </div>
   <div id="intro-hint"></div>
+  <div id="help-overlay">
+    <div id="help-inner">
+      <div class="help-grid">
+        <div class="help-cell"><span class="help-key">Space</span><span class="help-desc">Play / Pause</span></div>
+        <div class="help-cell"><span class="help-key">← →</span><span class="help-desc">Prev / Next seed</span></div>
+        <div class="help-cell"><span class="help-key">↑ ↓</span><span class="help-desc">Resolution</span></div>
+        <div class="help-cell"><span class="help-key">[ ]</span><span class="help-desc">Subdivision</span></div>
+        <div class="help-cell"><span class="help-key">+ −</span><span class="help-desc">Zoom</span></div>
+        <div class="help-cell"><span class="help-key">0</span><span class="help-desc">Reset zoom</span></div>
+        <div class="help-cell"><span class="help-key">R</span><span class="help-desc">Randomize all</span></div>
+        <div class="help-cell"><span class="help-key">C</span><span class="help-desc">Randomize colors</span></div>
+        <div class="help-cell"><span class="help-key">T</span><span class="help-desc">Toggle text</span></div>
+        <div class="help-cell"><span class="help-key">F</span><span class="help-desc">Frame mode</span></div>
+        <div class="help-cell"><span class="help-key">A</span><span class="help-desc">Auto-advance</span></div>
+        <div class="help-cell"><span class="help-key">S</span><span class="help-desc">Save PNG</span></div>
+        <div class="help-cell"><span class="help-key">Cmd .</span><span class="help-desc">Controls</span></div>
+        <div class="help-cell"><span class="help-key">?</span><span class="help-desc">This screen</span></div>
+        <div class="help-cell"><span class="help-key">Esc</span><span class="help-desc">Close</span></div>
+      </div>
+    </div>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

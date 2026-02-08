@@ -78,6 +78,8 @@ export interface RendererState {
   zoom: number;          // 1.0 = normal, >1 = zoomed in, <1 = zoomed out
   startTime: number;
   pauseOffset: number;
+  revealMap: Float32Array | null;  // per-pixel random threshold for dissolve reveal
+  revealStart: number;             // timestamp when reveal began, -1 = not started
 }
 
 type FillFn = (
@@ -197,7 +199,17 @@ export function initRenderer(
     zoom: 1.0,
     startTime: performance.now(),
     pauseOffset: 0,
+    revealMap: null,
+    revealStart: 0,
   };
+}
+
+export function generateRevealMap(w: number, h: number): Float32Array {
+  const map = new Float32Array(w * h);
+  for (let i = 0; i < map.length; i++) {
+    map[i] = Math.random();
+  }
+  return map;
 }
 
 /**
@@ -327,11 +339,25 @@ export function renderFrame(state: RendererState): void {
   applyWarp(gridBuffer, warpBuffer, gridW, gridH, t, state.warp, config.seed);
   const finalBuffer = state.warp > 0 ? warpBuffer : gridBuffer;
 
-  // Blit with zoom + optional mouse distortion
+  // Blit with zoom + optional mouse distortion + reveal dissolve
+  const REVEAL_DURATION = 2000; // ms
   const { imageData } = state;
   const data32 = new Uint32Array(imageData.data.buffer);
   const fg = state.fgColor;
   const bg = state.bgColor;
+
+  // Reveal dissolve progress
+  const revealMap = state.revealMap;
+  let revealProgress = 1; // 1 = fully revealed
+  if (revealMap && state.revealStart >= 0) {
+    revealProgress = Math.min(1, (performance.now() - state.revealStart) / REVEAL_DURATION);
+    if (revealProgress >= 1) {
+      state.revealMap = null; // done — free memory
+    }
+  } else if (revealMap && state.revealStart < 0) {
+    revealProgress = 0; // not started yet — show nothing
+  }
+  const revealing = revealMap !== null && revealProgress < 1;
 
   const zoom = state.zoom;
   const cx = gridW * 0.5;
@@ -345,8 +371,14 @@ export function renderFrame(state: RendererState): void {
   if (!mouseActive && zoom === 1) {
     // Fast path — no zoom, no mouse
     const totalPixels = gridW * gridH;
-    for (let i = 0; i < totalPixels; i++) {
-      data32[i] = finalBuffer[i] ? fg : bg;
+    if (revealing) {
+      for (let i = 0; i < totalPixels; i++) {
+        data32[i] = revealMap![i] < revealProgress ? (finalBuffer[i] ? fg : bg) : bg;
+      }
+    } else {
+      for (let i = 0; i < totalPixels; i++) {
+        data32[i] = finalBuffer[i] ? fg : bg;
+      }
     }
   } else {
     const radius = mouseActive ? Math.min(gridW, gridH) * state.mouseRadius : 0;
@@ -356,6 +388,8 @@ export function renderFrame(state: RendererState): void {
 
     for (let gy = 0; gy < gridH; gy++) {
       for (let gx = 0; gx < gridW; gx++) {
+        const outIdx = gy * gridW + gx;
+
         // Zoom: map output pixel back to source
         let sx = cx + (gx - cx) * invZ;
         let sy = cy + (gy - cy) * invZ;
@@ -376,11 +410,17 @@ export function renderFrame(state: RendererState): void {
 
         const ix = Math.round(sx);
         const iy = Math.round(sy);
+        let pixel: number;
         if (ix < 0 || ix >= gridW || iy < 0 || iy >= gridH) {
-          data32[gy * gridW + gx] = bg;
+          pixel = bg;
         } else {
-          data32[gy * gridW + gx] = finalBuffer[iy * gridW + ix] ? fg : bg;
+          pixel = finalBuffer[iy * gridW + ix] ? fg : bg;
         }
+
+        if (revealing && revealMap![outIdx] >= revealProgress) {
+          pixel = bg;
+        }
+        data32[outIdx] = pixel;
       }
     }
   }
