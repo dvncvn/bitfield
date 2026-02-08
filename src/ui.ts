@@ -23,6 +23,7 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   const frameBgLinkBtn = document.getElementById('frameBgLink')!;
   const frameRatioSelect = document.getElementById('frameRatio') as HTMLSelectElement;
   const frameShapeSelect = document.getElementById('frameShape') as HTMLSelectElement;
+  const frameLayoutSelect = document.getElementById('frameLayout') as HTMLSelectElement;
   const textToggleBtn = document.getElementById('textToggle')!;
   const textControlsEl = document.getElementById('textControls')!;
   const genTextToggleBtn = document.getElementById('genTextToggle')!;
@@ -316,7 +317,6 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     const pad = 24;
 
     if (frameMode) {
-      // Frame mode: position text beside the canvas
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const canvasRect = canvas.getBoundingClientRect();
@@ -324,49 +324,63 @@ export function setupUI(canvas: HTMLCanvasElement): void {
       const canvasRight = vw - canvasRect.right;
       const canvasTop = canvasRect.top;
       const canvasBottom = canvasRect.bottom;
-      const sideW = Math.max(canvasLeft, canvasRight) - pad * 2;
+      const centered = frameLayoutSelect.value === 'center';
 
-      switch (pos) {
-        case 'tl':
-          frameTextEl.style.left = pad + 'px';
-          frameTextEl.style.top = canvasTop + 'px';
-          frameTextEl.style.width = sideW + 'px';
-          break;
-        case 'bl':
-          frameTextEl.style.left = pad + 'px';
-          frameTextEl.style.bottom = (vh - canvasBottom) + 'px';
-          frameTextEl.style.width = sideW + 'px';
-          break;
-        case 'tr':
-          frameTextEl.style.right = pad + 'px';
-          frameTextEl.style.top = canvasTop + 'px';
-          frameTextEl.style.width = sideW + 'px';
-          canvas.style.right = '';
-          canvas.style.left = (Math.min(vw, window.innerHeight) * 0.06) + 'px';
-          break;
-        case 'br':
-          frameTextEl.style.right = pad + 'px';
-          frameTextEl.style.bottom = (vh - canvasBottom) + 'px';
-          frameTextEl.style.width = sideW + 'px';
-          canvas.style.right = '';
-          canvas.style.left = (Math.min(vw, window.innerHeight) * 0.06) + 'px';
-          break;
-        case 'cl':
-          frameTextEl.style.left = canvasLeft + 'px';
-          frameTextEl.style.top = canvasTop + 'px';
-          frameTextEl.style.width = (canvasRect.width) + 'px';
-          frameTextEl.style.height = (canvasRect.height) + 'px';
-          frameTextEl.style.justifyContent = 'center';
-          break;
-        case 'cc':
-          frameTextEl.style.left = canvasLeft + 'px';
-          frameTextEl.style.top = canvasTop + 'px';
-          frameTextEl.style.width = (canvasRect.width) + 'px';
-          frameTextEl.style.height = (canvasRect.height) + 'px';
-          frameTextEl.style.textAlign = 'center';
-          frameTextEl.style.alignItems = 'center';
-          frameTextEl.style.justifyContent = 'center';
-          break;
+      if (centered) {
+        // Center layout: overlay text on top of the canvas
+        frameTextEl.style.left = canvasLeft + 'px';
+        frameTextEl.style.top = canvasTop + 'px';
+        frameTextEl.style.width = canvasRect.width + 'px';
+        frameTextEl.style.height = canvasRect.height + 'px';
+        frameTextEl.style.textAlign = 'center';
+        frameTextEl.style.alignItems = 'center';
+        frameTextEl.style.justifyContent = 'center';
+      } else {
+        // Side layout: position text beside the canvas
+        const sideW = Math.max(canvasLeft, canvasRight) - pad * 2;
+
+        switch (pos) {
+          case 'tl':
+            frameTextEl.style.left = pad + 'px';
+            frameTextEl.style.top = canvasTop + 'px';
+            frameTextEl.style.width = sideW + 'px';
+            break;
+          case 'bl':
+            frameTextEl.style.left = pad + 'px';
+            frameTextEl.style.bottom = (vh - canvasBottom) + 'px';
+            frameTextEl.style.width = sideW + 'px';
+            break;
+          case 'tr':
+            frameTextEl.style.right = pad + 'px';
+            frameTextEl.style.top = canvasTop + 'px';
+            frameTextEl.style.width = sideW + 'px';
+            canvas.style.right = '';
+            canvas.style.left = (Math.min(vw, window.innerHeight) * 0.06) + 'px';
+            break;
+          case 'br':
+            frameTextEl.style.right = pad + 'px';
+            frameTextEl.style.bottom = (vh - canvasBottom) + 'px';
+            frameTextEl.style.width = sideW + 'px';
+            canvas.style.right = '';
+            canvas.style.left = (Math.min(vw, window.innerHeight) * 0.06) + 'px';
+            break;
+          case 'cl':
+            frameTextEl.style.left = canvasLeft + 'px';
+            frameTextEl.style.top = canvasTop + 'px';
+            frameTextEl.style.width = (canvasRect.width) + 'px';
+            frameTextEl.style.height = (canvasRect.height) + 'px';
+            frameTextEl.style.justifyContent = 'center';
+            break;
+          case 'cc':
+            frameTextEl.style.left = canvasLeft + 'px';
+            frameTextEl.style.top = canvasTop + 'px';
+            frameTextEl.style.width = (canvasRect.width) + 'px';
+            frameTextEl.style.height = (canvasRect.height) + 'px';
+            frameTextEl.style.textAlign = 'center';
+            frameTextEl.style.alignItems = 'center';
+            frameTextEl.style.justifyContent = 'center';
+            break;
+        }
       }
     } else {
       // Fullscreen mode: overlay text on the canvas
@@ -420,12 +434,12 @@ export function setupUI(canvas: HTMLCanvasElement): void {
       document.body.classList.remove('framed');
       document.body.style.backgroundColor = '';
       frameControlsEl.style.display = 'none';
-      canvas.style.top = '';
-      canvas.style.right = '';
-      canvas.style.left = '';
-      canvas.style.width = '';
-      canvas.style.height = '';
-      canvas.style.borderRadius = '';
+      canvas.style.top = '0';
+      canvas.style.right = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.borderRadius = '0';
       canvas.style.overflow = '';
       updateTextOverlay();
       return;
@@ -438,9 +452,18 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const pad = Math.min(vw, vh) * 0.06;
-    const textW = vw * 0.26;
-    const availW = vw - textW - pad * 2.5;
-    const availH = vh - pad * 2;
+    const layout = frameLayoutSelect.value;
+    const centered = layout === 'center';
+
+    let availW: number, availH: number;
+    if (centered) {
+      availW = vw - pad * 2;
+      availH = vh - pad * 2;
+    } else {
+      const textW = vw * 0.26;
+      availW = vw - textW - pad * 2.5;
+      availH = vh - pad * 2;
+    }
 
     // Aspect ratio
     const ratioStr = frameRatioSelect.value;
@@ -462,10 +485,16 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     }
 
     const top = (vh - h) / 2;
-    const right = pad;
+    let left: number;
+    if (centered) {
+      left = (vw - w) / 2;
+    } else {
+      const right = pad;
+      left = vw - right - w;
+    }
 
-    canvas.style.left = 'auto';
-    canvas.style.right = right + 'px';
+    canvas.style.left = left + 'px';
+    canvas.style.right = 'auto';
     canvas.style.top = top + 'px';
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
@@ -493,16 +522,21 @@ export function setupUI(canvas: HTMLCanvasElement): void {
     }
 
     updateTextOverlay();
+    // Re-position text after canvas transition finishes
+    setTimeout(() => updateTextOverlay(), 450);
   }
 
-  // Frame presets: cycle through ratio + shape combos with F key
-  const framePresets: { ratio: string; shape: string }[] = [];
+  // Frame presets: cycle through layout + ratio + shape combos with F key
+  const framePresets: { layout: string; ratio: string; shape: string }[] = [];
   {
+    const layouts = Array.from(frameLayoutSelect.options).map(o => o.value);
     const ratios = Array.from(frameRatioSelect.options).map(o => o.value);
     const shapes = Array.from(frameShapeSelect.options).map(o => o.value);
-    for (const ratio of ratios) {
-      for (const shape of shapes) {
-        framePresets.push({ ratio, shape });
+    for (const layout of layouts) {
+      for (const ratio of ratios) {
+        for (const shape of shapes) {
+          framePresets.push({ layout, ratio, shape });
+        }
       }
     }
   }
@@ -523,7 +557,6 @@ export function setupUI(canvas: HTMLCanvasElement): void {
 
   function cycleFrame() {
     if (!frameMode) {
-      // First press: enter frame mode
       frameMode = true;
       frameToggleBtn.textContent = 'ON';
       frameToggleBtn.classList.toggle('active', true);
@@ -533,6 +566,7 @@ export function setupUI(canvas: HTMLCanvasElement): void {
       framePresetIdx = (framePresetIdx + 1) % framePresets.length;
     }
     const preset = framePresets[framePresetIdx];
+    frameLayoutSelect.value = preset.layout;
     frameRatioSelect.value = preset.ratio;
     frameShapeSelect.value = preset.shape;
     updateFrameLayout();
@@ -571,6 +605,7 @@ export function setupUI(canvas: HTMLCanvasElement): void {
   });
   frameRatioSelect.addEventListener('change', () => { if (frameMode) updateFrameLayout(); });
   frameShapeSelect.addEventListener('change', () => { if (frameMode) updateFrameLayout(); });
+  frameLayoutSelect.addEventListener('change', () => { if (frameMode) updateFrameLayout(); });
 
   let genTextBase = '';
   let glitchInterval = 0;
