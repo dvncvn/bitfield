@@ -17,6 +17,8 @@ const NOUNS = [
   'feel', 'touch', 'skin',
   'rise', 'seed', 'hallow', 'beam',
   'filter', 'chorus', 'delay', 'async', 'feedback', 'hall', 'lair', 'cave',
+  'fragile', 'fire', 'cascade', 'seafoam', 'blossom', 'glimmer', 'glitter',
+  'felt', 'frontier', 'fern', 'ridge', 'light', 'glisten',
 ];
 
 const MODIFIERS = [
